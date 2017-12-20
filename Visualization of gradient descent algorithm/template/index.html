@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>The visualization of gradient descent algorithm </title>
+		<link href="/static/css/index.css" media="all" rel="stylesheet" />
+		<script src="/static/js/vis.js"></script>
+		<script src="/static/js/echarts.min.js"></script>
+		<script src="/static/js/vis-graph3D.js"></script>
+		<script src="/static/js/interactiveGraph.js"></script>
+		<script src="/static/js/lossGraph.js"></script>
+		<script src="/static/js/jquery.min.js">
+		</script>
+		<script>
+			var timerList = [] // for save all setInterval
+			var timeInterval = 1500
+			// README
+			$(function () {
+					$('.nav-toggle').click(function () {
+							if ($(this).hasClass('nav-open')) {
+								$(this).removeClass('nav-open');
+								$('.nav-menu').animate({
+									left: '-600'
+								})
+							} else {
+								$(this).addClass('nav-open');
+								$('.nav-menu').animate({
+									left: '120'
+								})
+							}
+					 })
+				});
+
+			$(document).ready(function(){
+
+				$.ajaxSetup({
+    				data: {csrfmiddlewaretoken: '{{ csrf_token }}' },
+				});
+				$("#run").click(function(){
+					iter_num = $("#text_maxN").val();
+						func_info = match($("#text_Function").val())
+						if(func_info[0] == 0)
+						{
+								alert("ILLEGAL INPUT\nPlease read README before test");
+								return false;
+						}
+
+				  	$.ajax({type:"post",
+				  			url:"index",
+				  			data:{type:'test1',
+				  				  iter_num:$("#text_maxN").val(),
+				  				  learning_rate:$("#text_LR").val(),
+				  				  function:$("#text_Function").val(),
+								  	init_params_a:$("#text_param_a").val(),
+				  				  init_params_b:$("#text_param_b").val(),
+				  				  arg:JSON.stringify(func_info),
+				  			},
+				  		async:true,
+					  	success:function(data,testStatus){
+							while(timerList.length>0){
+					  			var temp = timerList.pop()
+								clearInterval(temp)
+					  		}
+									var state = data['state']
+									var a_list = data['a_list']
+									var b_list = data['b_list']
+									var func = data['func']
+									var cost_list =data['cost_list']
+									var x_list = data['x_list']
+									var y_list = data['y_list']
+									var c_list = data['c_list']
+									var results_list = data['results_list']
+									graph_3d = data['graph_3d']
+
+									// Sample points
+							  	data_points=[];
+									for(var i =0;i<x_list.length;i++){
+										data_points.push([x_list[i],y_list[i]]);
+									}
+									drawInteractiveGraph();
+
+									data_x=[];
+									data_y=[];
+									var i=0;
+									var step=10;
+									// console.log('func '+func)
+									if(func==1){
+											function updateLoss(){
+													data_x.push(i);
+													data_y.push(cost_list[i]);
+													drawLossGraph();
+
+													// Get the range
+													var max = Math.max.apply(null, x_list);
+													var min = Math.min.apply(null, x_list);
+													// console.log('max '+ max +' min '+min)
+													// console.log('a '+a_list[i])
+													// console.log('b '+b_list[i])
+													var tmp_y = 0;
+													data_line=[];
+													// Regenerate the curve of ith iteration
+													var regression_step = (max - min) / 20
+													for(var j = min;j < max;j=j+regression_step)
+													{
+															temp_y = j*a_list[i] + b_list[i];
+															data_line.push([j,temp_y]);
+													}
+													drawInteractiveGraph();
+													i+=step;
+													if(i>=cost_list.length){
+															clearInterval(u)
+															return;
+													}
+											}
+											timeInterval=document.getElementById("range").value;
+											var u = setInterval(function(){ updateLoss()}, timeInterval);
+											timerList.push(u);
+							}else if(func == 2)
+									{
+											function updateLoss(){
+													data_x.push(i);
+													data_y.push(cost_list[i]);
+													drawLossGraph();
+
+													// Get the range
+													var max = Math.max.apply(null, x_list);
+													var min = Math.min.apply(null, x_list);
+													// console.log(a_list)
+													var tmp_y = 0;
+													data_line=[];
+													// Regenerate the curve of ith iteration
+													var regression_step = (max - min) / 20
+													for(var j = min;j < max;j=j+regression_step)
+													{
+															temp_y = j*j*a_list[i] + j*b_list[i] + c_list[i];
+															data_line.push([j,temp_y]);
+													}
+													drawInteractiveGraph();
+													i+=step;
+													if(i>=cost_list.length){
+															clearInterval(u);
+															return;
+													}
+											}
+											timeInterval=document.getElementById("range").value;
+											var u = setInterval(function(){ updateLoss()}, timeInterval);
+											timerList.push(u);
+									}else if(func == 3)
+									{
+											function updateLoss(){
+													data_x.push(i);
+													data_y.push(cost_list[i]);
+													drawLossGraph();
+													var max = Math.max.apply(null, x_list);
+													var min = Math.min.apply(null, x_list);
+													var tmp_y = 0;
+													data_line=[];
+													// console.log(a_list)
+													// console.log(b_list)
+													var regression_step = (max - min) / 20
+													console.log('y = sin('+a_list[i]+' cos( '+b_list[i]+" x))")
+													for(var j = min;j < max;j=j+regression_step)
+													{
+															temp_y = Math.sin(a_list[i]*Math.cos(b_list[i]*j));
+															data_line.push([j,temp_y]);
+													}
+													drawInteractiveGraph();
+													i+=step;
+													if(i>=cost_list.length){
+															clearInterval(u)
+															return;
+													}
+											}
+											timeInterval=document.getElementById("range").value;
+											var u = setInterval(function(){ updateLoss()}, timeInterval);
+											timerList.push(u);
+									}
+									drawVisualization();
+							}
+					});
+				  	return false;
+				});
+
+				$("#run2").click(function(){
+					
+				  	$.ajax({type:"post",
+				  			url:"index",
+				  			data:{	type:'test2',
+				  					iter_num:$("#text_maxN2").val(),
+				  					learning_rate:$("#text_LR2").val(),
+				  					select_model:$("#select_model2").val(),
+									init_params_a:$("#text_param_a_2").val(),
+			  				  		init_params_b:$("#text_param_b_2").val(),
+				  					dataArray:JSON.stringify({'dataArray':data_points}),
+					  				},
+					        async:true,
+					  	success:function(data,testStatus){
+					  		while(timerList.length>0){
+					  			var temp = timerList.pop()
+								clearInterval(temp)
+					  		}
+									var state = data['state']
+									var a_list = data['a_list']
+									var b_list = data['b_list']
+									var func = data['func']
+									var cost_list =data['cost_list']
+									var x_list = data['x_list']
+									var y_list = data['y_list']
+									var c_list = data['c_list']
+									var results_list = data['results_list']
+									graph_3d = data['graph_3d']
+
+									// Sample points
+							  	// data_points=[];
+									// for(var i =0;i<x_list.length;i++){
+									// 	data_points.push([x_list[i],y_list[i]]);
+									// }
+									drawInteractiveGraph();
+
+									data_x=[];
+									data_y=[];
+									var i=0;
+									var step=10;
+									// console.log('x_list',x_list)
+									console.log('func '+func)
+									if(func==1){
+											function updateLoss(){
+													data_x.push(i);
+													data_y.push(cost_list[i]);
+													drawLossGraph();
+
+													// Get the range
+													var max = Math.max.apply(null, x_list);
+													var min = Math.min.apply(null, x_list);
+													console.log('y = '+a_list[i]+' x + '+b_list[i])
+													// console.log('max '+ max +' min '+min)
+													// console.log('a '+a_list[i])
+													// console.log('b '+b_list[i])
+													var tmp_y = 0;
+													data_line=[];
+													// Regenerate the curve of ith iteration
+													var regression_step = (max - min) / 20
+													for(var j = min;j < max;j=j+regression_step)
+													{
+															temp_y = j*a_list[i] + b_list[i];
+															data_line.push([j,temp_y]);
+													}
+													drawInteractiveGraph();
+
+													i+=step;
+													if(i>=cost_list.length){
+															clearInterval(u)
+															return;
+													}
+											}
+											timeInterval=document.getElementById("range").value;
+											var u = setInterval(function(){ updateLoss()}, timeInterval);
+											timerList.push(u);
+									}else if(func == 2)
+									{
+											function updateLoss(){
+													data_x.push(i);
+													data_y.push(cost_list[i]);
+													drawLossGraph();
+
+													// Get the range
+													var max = Math.max.apply(null, x_list);
+													var min = Math.min.apply(null, x_list);
+													console.log("max:"+max+" min:"+min)
+													// console.log(a_list)
+													var tmp_y = 0;
+													data_line=[];
+													// Regenerate the curve of ith iteration
+													var regression_step = (max - min) / 20
+													console.log('y = '+a_list[i]+' x^2 + '+b_list[i]+" x "+c_list[i])
+
+													for(var j = min;j < max;j=j+regression_step)
+													{
+															temp_y = j*j*a_list[i] + j*b_list[i] + c_list[i];
+															// console.log("("+j+","+temp_y+")")
+															data_line.push([j,temp_y]);
+													}
+													drawInteractiveGraph();
+													i+=step;
+													if(i>=cost_list.length){
+															clearInterval(u);
+															return;
+													}
+											}
+											timeInterval=document.getElementById("range").value;
+											var u = setInterval(function(){ updateLoss()}, timeInterval);
+											timerList.push(u);
+									 }
+									// else if(func == 3)
+									// {
+									// 		function updateLoss(){
+									// 				i+=step;
+									// 				if(i>=cost_list.length){
+									// 						clearInterval(u)
+									// 						return;
+									// 				}
+									// 				data_x.push(i);
+									// 				data_y.push(cost_list[i]);
+									// 				drawLossGraph();
+									// 				var max = Math.max.apply(null, x_list);
+									// 				var min = Math.min.apply(null, x_list);
+									// 				var tmp_y = 0;
+									// 				data_line=[];
+									// 				// console.log(a_list)
+									// 				// console.log(b_list)
+									// 				for(var j = min;j < max;j=j+0.1)
+									// 				{
+									// 						temp_y = Math.sin(a_list[i]*Math.cos(b_list[i]*j));
+									// 						data_line.push([j,temp_y]);
+									// 				}
+									// 				drawInteractiveGraph();
+									// 		}
+									// 		var u = setInterval(function(){ updateLoss()}, 1500);
+									// }
+									drawVisualization();
+					  	}
+					});
+					return false;
+				});
+				//added by ravi
+				// for button clear and stop
+				$("#button_clear").click(function(){
+					while(timerList.length>0){
+			  			var temp = timerList.pop()
+						clearInterval(temp)
+					}
+					data_x=[];
+					data_y=[];
+
+					data_points=[];
+					data_line=[];
+
+					drawInteractiveGraph();
+					drawLossGraph();
+					return false;
+				});
+				$("#button_stop").click(function(){
+					while(timerList.length>0){
+			  			var temp = timerList.pop()
+						clearInterval(temp)
+					}
+					return false;
+				});
+			});
+
+
+			function match(func){
+				var type = 0;
+				var a = 0;
+				var b = 0;
+				var c = 0;
+
+				// 验证输入合法性
+				const Linear = /^y=(\d*)x(\+\d+)?$/g;
+				const Quadratic = /^y=\d*x\^2(\+\d*x)?(\+\d+)?$/g;
+				const fuck= /^y=sin\(\d*cos\(\d*x\)\)$/g;
+
+				// 提取系数
+				const cl = /\d*(?=x(?!\^))/g;		// 一次项
+				const cq = /\d*(?=x\^2)/g;			// 二次项
+				const cfs = /\d*(?=x)/g;				// fuck 函数一次项
+				const cfc = /\d*(?=cos)/g;			// cos 系数
+				const con = /\d+$/g;						// 常数
+
+				var res = new Array(3)
+
+				for (var i=0;i < 7;i ++)
+				{
+						func = func.replace(/\s+/g,"")
+						res[0] = func.match(Linear);
+						res[1] = func.match(Quadratic);
+						res[2] = func.match(fuck);
+
+						// 线性
+						if (res[0] != null)
+						{
+								type = 1;
+								a = func.match(cl)
+								b = func.match(con)
+								a = convert(a)
+								b = convert(b)
+								c = 0
+						}
+						// 二次函数
+						else if (res[1] != null)
+						{
+								type = 2;
+								a = func.match(cq)
+								b = func.match(cl)
+								c = func.match(con)
+								a = convert(a)
+								b = convert(b)
+								c = convert(c)
+						}
+						// fuck函数
+						else if (res[2] != null)
+						{
+								type = 3;
+								a = func.match(cfc)
+								b = func.match(cfs)
+								a = convert(a)
+								b = convert(b)
+						}
+						// 非法输入
+						else
+						{
+								type = 0;
+								a = b = c = 0;
+						}
+				}
+
+				res = [type, a, b, c]
+				return res;
+			}
+
+			function convert(a){
+					if (a != null)
+					{
+							a = a[0]
+							if (a == ''){
+									a = 1;
+							}else {
+									a = parseInt(a)
+							}
+					}else{
+							a = 0
+					}
+					return a
+			}
+		</script>
+	</head>
+
+	<!-- <body > -->
+	<!--  -->
+	<body onload="drawVisualization();drawInteractiveGraph();drawLossGraph();">
+		<p id = 'title'>The visualization of gradient descent algorithm </p>
+		<div class="nav-toggle">
+				<span style="margin-left:17px;margin-top:10px;color:#666666;">README</span>
+				<span class="toggle1"></span>
+				<span class="toggle2"></span>
+				<span class="toggle3"></span>
+		</div>
+		<div class="nav-menu">
+				<p id='readme_title'>README</p>
+				<p>
+						This is a visiualization of gradient descent algorithm,here are some instructions about this website
+				</p>
+				<p>
+						This website is mainly divided into two parts,as you can see,Section 1 and Section 2
+				</p>
+				<p>
+				Here is how to use it.
+				</p>
+				<p>
+					In Section 1,you need to give a function(linear function,quadratic function or a compound function of two trigonometric functions),and then we will show you the regression of this function using the gradient descent algorithm,as well as the function image,the change of loss function.You can also give the number of iterations , the learning rate of the gradient descent process and the relevant parameters of the function.Of course, you can use the default value as the input.Note that the function you enter needs to be shaped as 'y=ax+b','y=ax^2+bx+c' or 'y=sin(acos(bx))'.
+				</p>
+				<p>
+					In Section 2,you can click to add points in coordinate system,then you can choose a model(linear Regression or polynomial regression),and click the 'run' button to start the regression,we will show you the regression similar to Section 1.
+				</p>
+				<p>
+					In addition,the 'stop' button is to stop the regression and the 'clear' button is to clear all the points in coordinate system,and you can use the slidebar to adjust the display speed.
+				</p>
+				<p>
+					If you still do not understand anything, just give it a try!
+				</p>
+
+		</div>
+		<div id='main'>
+			<div id = 'stop'>
+				<button class="button1 button_clear" id = 'button_clear'>Clear</button>
+				<button class="button1 button_stop" id ='button_stop'>Stop</button>
+			</div>
+			<div id='controls'>
+			    <form id="form1" action="/index" method="post" name='test1'>
+				{% csrf_token %}
+				<span id = 'method'>Section 1</span>
+				<span id = 'maxN'>Max_iter:&nbsp;</span>
+				<input id='type' type='hidden' value='test1' name='type'>
+				<input id='text_maxN' type='text' value='300' name='iter_num'>
+				<span id = 'LR'>Learning Rate:&nbsp;</span>
+				<input id='text_LR' type='text' value='0.01' name='learning_rate'>
+				<span id = 'Function'>Function:&nbsp;</span>
+				<input id='text_Function' type='text' value='y=3x+5' name='function'>
+				<!-- added by ravi at 21.07 -->
+				<span id = 'param_a'>init_value_a:&nbsp;</span>
+				<input id='text_param_a' type='text' value='5' name='param_a'>
+				<span id = 'param_b'>init_value_b:&nbsp;</span>
+				<input id='text_param_b' type='text' value='1' name='param_b'>
+
+				<input id = 'run' type="submit" value="run">
+				</select>
+				</form>
+			    <form id="form2" action="/index" method="post" name="test2">
+				{% csrf_token %}
+				<span id = 'method2'>Section 2</span>
+				<span id = 'model2'>Model</span>
+				<input id='type' type='hidden' value='test2' name='type'>
+				<input id='dataArray' type='hidden' value='' name='dataArray'>
+				<select id="select_model2" name='select_model'>
+					<option value="linear regression">Linear Regression</option>
+					<option value="polynomial regression">polynomial regression</option>
+					<!-- <option value="linear_regression">Linear Regression</option> -->
+
+				<select>
+				<span id = 'maxN2'>Max_iter:&nbsp;</span>
+				<input id='text_maxN2' type='text' value='200' name='iter_num'>
+				<span id = 'LR2'>Learning Rate:&nbsp;</span>
+				<input id='text_LR2' type='text' value='0.1' name='learning_rate'>
+				<!-- added by ravi at 12-18 21:40 -->
+				<span id = 'param_a_2'>init_value_a:&nbsp;</span>
+				<input id='text_param_a_2' type='text' value='5' name='param_a_2'>
+				<span id = 'param_b_2'>init_value_b:&nbsp;</span>
+				<input id='text_param_b_2' type='text' value='1' name='param_b_2'>
+
+						<input id = 'run2' type="submit" value="run">
+				</select>
+				</form>
+			</div>
+			<div id="gradientGraph">
+			</div>
+			<div id='interactiveGraph'></div>
+			<div id='lossGraph'></div>
+			<div id = 'rangeDiv'>
+				<p id ='p1'>100</p>
+				<input id='range' type="range" min="100" max="3000" value="1000"/>
+				<p id='p2'>3000</p>
+			</div>
+		</div>
+	</body>
+</html>
