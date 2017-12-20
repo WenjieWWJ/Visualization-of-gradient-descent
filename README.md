@@ -28,4 +28,8 @@ Installation
 more details in README of the website.
 
 
-This project is completed by [Zhaozheng Chen](https://github.com/bigtiao097),[zhixin Ma](https://github.com/mzx5464) and [wenjie Wang](https://github.com/Ravi-Jay).  
+This project is completed by [Zhaozheng Chen](https://github.com/bigtiao097),[zhixin Ma](https://github.com/mzx5464) and [wenjie Wang](https://github.com/Ravi-Jay).  
+<br>
+
+sample
+![img](image.jpg)
