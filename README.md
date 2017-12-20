@@ -25,4 +25,7 @@ Installation
    ```
    - enter 'localhost:8080/index' in your browser
 
-more details in README of the website
+more details in README of the website.
+
+
+This project is completed by [Zhaozheng Chen](https://github.com/bigtiao097),[zhixin Ma](https://github.com/mzx5464) and [wenjie Wang](https://github.com/Ravi-Jay).  
